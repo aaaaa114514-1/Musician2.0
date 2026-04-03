@@ -84,9 +84,6 @@ musician_project/
 
 ## 待修改
 
-+ 增加歌曲Tag功能，以Tag代替Lis目录功能，，支持play <tag> 选择功能，支持showlist 展示每首歌的tag
-+ showlist 增加展示指定目录下所有文件功能（默认为Lis目录）
-+ （尝试增加showlist显示歌曲长度功能，如果会导致延迟就改为 showlist -t 显示）
 + 重构 history 指令的展示面板
 + 修Kugou音乐的爬虫
 + 使用安装包安装

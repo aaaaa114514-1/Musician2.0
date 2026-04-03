@@ -36,6 +36,7 @@ dist/
 
 # Python
 __pycache__/
+*.spec
 *.py[cod]
 *$py.class
 *.so
