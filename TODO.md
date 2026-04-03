@@ -42,6 +42,7 @@ musician_project/
   - `play -t 60`: 播放的同时设置 60 分钟后自动停止
 - `<Command> -h` Help:
   - `timelimit -h`: 展示指令 `timelimit` 的用法
+- 非法的连写命令将被指出
 
 ### 重构设置功能
 
@@ -60,15 +61,42 @@ musician_project/
 
 + 增加支持 `timelimit 14:15` 或 `timelimit 23:59:59` 的功能，自动播放直到下一次到达指定的时刻
 
+### 增加歌曲 Tag 功能，重构存储逻辑
+
++ 增加tags.json存储每首歌的tag
++ 替代了原本的 Lis 目录逻辑，而是使用指定tag来播放音乐
++ 标签必须是由大小写敏感的字母、数字（可以没有）、下划线（可以没有）组成的，不能纯数字
++ `tag` 标签
+  + `tag` 列出所有标签和标签下的曲目数量
+  + `tag -l` 列出所有标签和标签下的曲目
+  + `tag test` 列出标签 `test` 下的所有曲目
+  + `tag -a test 1-4 6` 把当前目录下的第1-4、6首曲子打上标签 `test`
+  + `tag -d test` 删除标签 `test` ，洗脱所有曲目的这个标签
+  + `tag -d test 2-3 7` 把带 `test` 标签的低2-3、7首曲子洗脱 `test` 标签
+
++ `play` 新增内容
+  + `play test` 播放 `test` 中的曲目（这里的 `test` 可以按照任意顺序传入参数）
++ `showlist` 新增内容
+  + `showlist test` 列出标签 `test` 下的所有曲目
++ `save` 语法重构
+  + `save` 把 `savelist` 中的歌曲保存到曲库目录
+  + `save test1 test2` 把 `savelist` 中的歌曲保存到曲库目录，并把这些歌曲统一打上 `test1` `test2` 标签
+
 ## 待修改
 
-+ 增加歌曲Tag功能，以Tag代替Lis目录功能，增加tags.json存储所有tag和每首歌的tag，支持play <tag> 选择功能，支持showlist 展示每首歌的tag
++ 增加歌曲Tag功能，以Tag代替Lis目录功能，，支持play <tag> 选择功能，支持showlist 展示每首歌的tag
 + showlist 增加展示指定目录下所有文件功能（默认为Lis目录）
 + （尝试增加showlist显示歌曲长度功能，如果会导致延迟就改为 showlist -t 显示）
 + 重构 history 指令的展示面板
 + 修Kugou音乐的爬虫
 + 使用安装包安装
 + 添加心动模式，采用评价系统打分推荐
+
+
+
+
+
+
 
 
 

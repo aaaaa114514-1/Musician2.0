@@ -8,5 +8,6 @@
     "search_threshold": 30,
     "kugou_token": "55f2409f72970daa21bdc63acee305db",
     "history_path": "D:\\BGM\\Settings\\history.txt",
-    "common_commands_path": "D:\\BGM\\Settings\\common_commands.json"
+    "common_commands_path": "D:\\BGM\\Settings\\common_commands.json",
+    "tags_path": "D:\\BGM\\Settings\\tags.json"
 }

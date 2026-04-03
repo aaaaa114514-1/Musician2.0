@@ -30,18 +30,21 @@ def main():
         return
 
     # 2. Init environment
-    folder = pathlib.Path(config['play_dir'])
-    mp3_files = sorted([f for f in folder.glob("*.mp3")], key=lambda f: f.stat().st_mtime)
-    playlist = [f.name for f in mp3_files]
+    # Always sort library by creation time (ascending)
+    folder = pathlib.Path(config['library_dir'])
+    files = sorted([f for f in folder.glob("*.mp3")], key=lambda f: f.stat().st_ctime)
+    playlist = [f.name for f in files] # Full library sorted by time
+    current_view_list = list(playlist)    # Default view is full library
     
+    tags = handlers._load_tags(config)
     history_manager = HistoryManager(config['history_path'])
-    bgm = player(config['play_dir'], playlist, config['volume'], history_manager)
+    bgm = player(config['library_dir'], playlist, config['volume'], history_manager)
     
     timelimit = [int(time.time()) + 1e9]
     lock = threading.Lock()
     mode = 'cycle'
     running = 1
-    kugou_list, files, songnames = [], [], []
+    kugou_list, files_cache, songnames = [], [], []
 
     # 3. Setup Command completion and InMemory History
     base_commands = ['help', ':h', 'quit', 'exit', 'end', ':q', 'check163', ':163_cache', 
@@ -50,27 +53,23 @@ def main():
                 'stop', ':st', 'pause', ':pa', 'next', ':n', 'restart', 'replay', ':r', 
                 'volume', ':vol', 'savelist', ':sl', 'save', ':s', 'add', ':a', 
                 'clear', ':cl', 'library', ':lib', 'lookup', ':lu', 'timelimit', ':tl', 
-                'history', ':his', 'set', 'common', '?', ':?', 'last', 'previous', ':prev']
+                'history', ':his', 'set', 'common', 'tag', '?', ':?', 'last', 'previous', ':prev']
     
-    # Pre-populate history and completer with common commands
     common_cmds = []
     cc_path = config.get('common_commands_path')
     if cc_path and os.path.exists(cc_path):
         try:
             with open(cc_path, "r", encoding="utf-8") as f:
                 common_cmds = json.load(f)
-        except:
-            pass
+        except: pass
 
     history = InMemoryHistory()
-    # Loading common commands into history so they are available via Up key
     for cmd_str in common_cmds:
         history.append_string(cmd_str)
     
-    all_cmds = list(set(base_commands + common_cmds))
     session = PromptSession(
         history=history,
-        completer=FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
+        completer=FuzzyCompleter(WordCompleter(base_commands, ignore_case=True))
     )
 
     # 4. Background thread
@@ -95,7 +94,7 @@ def main():
             elif cmd in ['quit', 'exit', 'end', ':q']:
                 running = handlers.handle_quit(res, bgm, history_manager)
             elif cmd in ['check163', ':163_cache']:
-                songnames, files = handlers.handle_check163(res, config['netease_cache'])
+                songnames, files_cache = handlers.handle_check163(res, config['netease_cache'])
             elif cmd in ['clear163', ':163_clear']:
                 handlers.handle_clear163(res, config['netease_cache'])
             elif cmd in ['search', '/s']:
@@ -103,11 +102,11 @@ def main():
             elif cmd in ['download', '/d']:
                 handlers.handle_download(res, kugou_list, config['download_dir'], config['kugou_token'])
             elif cmd in ['decode', ':d']:
-                handlers.handle_decode(res, files, songnames, config['download_dir'], config['temp_dir'])
+                handlers.handle_decode(res, files_cache, songnames, config['download_dir'], config['temp_dir'])
             elif cmd in ['showlist', ':l']:
-                handlers.handle_showlist(res, playlist)
+                current_view_list = handlers.handle_showlist(res, config['library_dir'], tags)
             elif cmd in ['play', ':p']:
-                mode = handlers.handle_play(res, bgm, playlist, mode, timelimit, lock)
+                mode, current_view_list = handlers.handle_play(res, bgm, playlist, current_view_list, mode, config, tags, timelimit, lock)
             elif cmd in ['mode', ':m']:
                 mode = handlers.handle_mode(res, bgm, mode, playlist)
             elif cmd in ['restart', 'replay', ':r']:
@@ -117,9 +116,9 @@ def main():
             elif cmd in ['savelist', ':sl']:
                 handlers.handle_savelist(res, config['download_dir'])
             elif cmd in ['save', ':s']:
-                handlers.handle_save(res, config['download_dir'], config['play_dir'], config['library_dir'], playlist)
+                playlist = handlers.handle_save(res, config['download_dir'], config['library_dir'], playlist, tags, config)
             elif cmd in ['add', ':a']:
-                mode = handlers.handle_add(res, bgm, playlist, mode)
+                mode, current_view_list = handlers.handle_add(res, bgm, playlist, current_view_list, mode, config, tags)
             elif cmd in ['clear', ':cl']:
                 handlers.handle_clear(res, config['download_dir'])
             elif cmd in ['stop', ':st']:
@@ -141,7 +140,10 @@ def main():
             elif cmd in ['set']:
                 handlers.handle_set(res, config)
             elif cmd in ['common']:
-                handlers.handle_common(res, config, session, base_commands)
+                handlers.handle_common(res, config, session)
+            elif cmd in ['tag']:
+                # Pass playlist (current view used in -a is now explicitly from current_view_list inside handler)
+                tags = handlers.handle_tag(res, current_view_list, config, tags)
             elif cmd in ['?', ':?']:
                 handlers.handle_current_song(res, bgm)
             else:
