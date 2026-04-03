@@ -43,19 +43,26 @@ musician_project/
 - `<Command> -h` Help:
   - `timelimit -h`: 展示指令 `timelimit` 的用法
 
+### 重构设置功能
+
++ 重构 `savedata.txt` 文件为 `settings.json` 文件
++ 增加 `set` 语句，支持应用内展示配置、修改配置（带合法性校验）
+
+### 增加存储常用指令功能
+
++ 增加 `common_commands.json` 文件，存储常用指令
++ 常用指令可以在打开应用后直接通过上/下键直接选择
++ 增加 `common` 语句，支持应用内查看、增删常用指令
+
 ## 待修改
 
 + （尝试增加储存常用指令，快捷调用功能）
-+ 重构settings配置文件格式为.json，增加 set 语句，实现应用内调配置功能
-
 + 增加歌曲Tag功能，以Tag代替Lis目录功能，增加tags.json存储所有tag和每首歌的tag，支持play <tag> 选择功能，支持showlist 展示每首歌的tag
 + showlist 增加展示指定目录下所有文件功能（默认为Lis目录）
 + （尝试增加showlist显示歌曲长度功能，如果会导致延迟就改为 showlist -t 显示）
 + timelimit 增加播放到固定时间功能
-
 + 修Kugou音乐的爬虫
 + 使用安装包安装
-
 + 添加心动模式，采用评价系统打分推荐
 
 

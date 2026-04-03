@@ -14,6 +14,7 @@ from services.netease import get_name, uc_decode
 from services.kugou import kugou_getlist, kugou_download
 from utils.file_utils import sanitize_filename
 from utils.search_utils import fuzzy_match_all
+from prompt_toolkit.completion import WordCompleter, FuzzyCompleter
 
 # Help messages for each command
 CMD_HELP = {
@@ -42,6 +43,7 @@ CMD_HELP = {
     'history': "Usage: history | :his\nFunction: Show play counts and total time statistics.\nExample: history",
     'current': "Usage: ? | :?\nFunction: Show information about the song currently playing.\nExample: ?",
     'set': "Usage: set [list | <key> <value>]\nFunction: View or modify settings. Settings are saved to settings.json.\nExample: set list | set volume 0.5",
+    'common': "Usage: common [-l | -a <cmd> | -d <index>]\nFunction: Manage common commands.\nExample: common -l | common -a \"play 1-5 -m r\" | common -d 1",
 }
 
 def _check_help(res, cmd_key):
@@ -124,6 +126,7 @@ lookup #/:lu\t\tSearch in library
 timelimit/:tl #\t\tSet play time limit
 history/:his\t\tShow history
 set\t\t\tView/Change settings
+common\t\t\tManage common commands
 ?/:?\t\t\tCurrent song
 --------------------------------------------------------------------------
 Tip: Add -h after any command for detailed usage and examples!
@@ -167,7 +170,6 @@ def handle_clear163(res, cache_directory):
 def handle_search(res, threshold):
     if _check_help(res, 'search'): return []
     try:
-        # Standardize command parsing
         parts = res.split()
         if len(parts) < 2:
             print("Please provide a keyword to search.")
@@ -516,12 +518,9 @@ def handle_set(res, config):
             val = int(value_str)
             if not (0 <= val <= 100): raise ValueError
             config[key] = val
-        elif key in ['netease_cache', 'download_dir', 'temp_dir', 'play_dir', 'library_dir']:
-            if not os.path.exists(value_str):
-                print(f"Warning: Path '{value_str}' does not exist on this machine.")
+        elif key in ['netease_cache', 'download_dir', 'temp_dir', 'play_dir', 'library_dir', 'common_commands_path']:
             config[key] = value_str
         else:
-            # Token and other strings
             config[key] = value_str
         
         if _save_settings(config):
@@ -529,3 +528,63 @@ def handle_set(res, config):
         
     except ValueError:
         print(f"Error: Invalid value for '{key}'. Please check the type/range.")
+
+def handle_common(res, config, session, base_commands):
+    """Manage common commands JSON and session history/autocomplete."""
+    if _check_help(res, 'common'): return
+
+    path = config.get('common_commands_path')
+    common_list = []
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            common_list = json.load(f)
+    
+    parts = res.split()
+    
+    # 1. List
+    if len(parts) == 1 or '-l' in parts:
+        if not common_list:
+            print("Common command list is empty.")
+        else:
+            print("\nCommon Commands:")
+            for i, cmd in enumerate(common_list, 1):
+                print(f"{i}.\t{cmd}")
+        return
+
+    # 2. Add
+    if '-a' in parts:
+        # Get the string after -a
+        idx = parts.index('-a')
+        new_cmd = " ".join(parts[idx+1:]).strip().strip('"').strip("'")
+        if new_cmd:
+            if new_cmd not in common_list:
+                common_list.append(new_cmd)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(common_list, f, indent=4, ensure_ascii=False)
+                # Update session history and completer
+                session.history.append_string(new_cmd)
+                all_cmds = list(set(base_commands + common_list))
+                session.completer = FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
+                print(f"Added common command: {new_cmd}")
+            else:
+                print("Command already in list.")
+        return
+
+    # 3. Delete
+    if '-d' in parts:
+        idx = parts.index('-d')
+        try:
+            target_idx = int(parts[idx+1]) - 1
+            if 0 <= target_idx < len(common_list):
+                removed = common_list.pop(target_idx)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(common_list, f, indent=4, ensure_ascii=False)
+                # Update completer (History cannot be easily removed from MemoryHistory)
+                all_cmds = list(set(base_commands + common_list))
+                session.completer = FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
+                print(f"Removed: {removed}")
+            else:
+                print("Invalid index.")
+        except:
+            print("Please provide a valid index to delete.")
+        return

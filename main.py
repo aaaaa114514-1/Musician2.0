@@ -8,6 +8,7 @@ import pathlib
 import threading
 import json
 from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.completion import WordCompleter, FuzzyCompleter
 
 from core.player import player, keep_checking
@@ -18,7 +19,7 @@ def main():
     # 1. Load config from JSON
     config_file = "settings.json"
     if not os.path.exists(config_file):
-        print(f"Error: {config_file} not found. Please create it first.")
+        print(f"Error: {config_file} not found.")
         return
 
     try:
@@ -42,15 +43,35 @@ def main():
     running = 1
     kugou_list, files, songnames = [], [], []
 
-    # 3. Command completion
-    commands = ['help', ':h', 'quit', 'exit', 'end', ':q', 'check163', ':163_cache', 
+    # 3. Setup Command completion and InMemory History
+    base_commands = ['help', ':h', 'quit', 'exit', 'end', ':q', 'check163', ':163_cache', 
                 'decode', ':d', 'clear163', ':163_clear', 'search', '/s', 'download', '/d', 
                 'showlist', ':l', 'play', ':p', 'mode', ':m', 
                 'stop', ':st', 'pause', ':pa', 'next', ':n', 'restart', 'replay', ':r', 
                 'volume', ':vol', 'savelist', ':sl', 'save', ':s', 'add', ':a', 
                 'clear', ':cl', 'library', ':lib', 'lookup', ':lu', 'timelimit', ':tl', 
-                'history', ':his', 'set', '?', ':?', 'last', 'previous', ':prev']
-    session = PromptSession(completer=FuzzyCompleter(WordCompleter(commands, ignore_case=True)))
+                'history', ':his', 'set', 'common', '?', ':?', 'last', 'previous', ':prev']
+    
+    # Pre-populate history and completer with common commands
+    common_cmds = []
+    cc_path = config.get('common_commands_path')
+    if cc_path and os.path.exists(cc_path):
+        try:
+            with open(cc_path, "r", encoding="utf-8") as f:
+                common_cmds = json.load(f)
+        except:
+            pass
+
+    history = InMemoryHistory()
+    # Loading common commands into history so they are available via Up key
+    for cmd_str in common_cmds:
+        history.append_string(cmd_str)
+    
+    all_cmds = list(set(base_commands + common_cmds))
+    session = PromptSession(
+        history=history,
+        completer=FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
+    )
 
     # 4. Background thread
     threading.Thread(target=keep_checking, args=(bgm, timelimit, lock), daemon=True).start()
@@ -119,6 +140,8 @@ def main():
                 handlers.handle_history(res, history_manager)
             elif cmd in ['set']:
                 handlers.handle_set(res, config)
+            elif cmd in ['common']:
+                handlers.handle_common(res, config, session, base_commands)
             elif cmd in ['?', ':?']:
                 handlers.handle_current_song(res, bgm)
             else:
