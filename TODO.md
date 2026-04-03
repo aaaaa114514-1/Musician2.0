@@ -54,13 +54,18 @@ musician_project/
 + 常用指令可以在打开应用后直接通过上/下键直接选择
 + 增加 `common` 语句，支持应用内查看、增删常用指令
 
+### 增加 `timelimit` 播放到固定时间功能
+
++ 重构了 `timelimit` 处理代码
+
++ 增加支持 `timelimit 14:15` 或 `timelimit 23:59:59` 的功能，自动播放直到下一次到达指定的时刻
+
 ## 待修改
 
-+ （尝试增加储存常用指令，快捷调用功能）
 + 增加歌曲Tag功能，以Tag代替Lis目录功能，增加tags.json存储所有tag和每首歌的tag，支持play <tag> 选择功能，支持showlist 展示每首歌的tag
 + showlist 增加展示指定目录下所有文件功能（默认为Lis目录）
 + （尝试增加showlist显示歌曲长度功能，如果会导致延迟就改为 showlist -t 显示）
-+ timelimit 增加播放到固定时间功能
++ 重构 history 指令的展示面板
 + 修Kugou音乐的爬虫
 + 使用安装包安装
 + 添加心动模式，采用评价系统打分推荐

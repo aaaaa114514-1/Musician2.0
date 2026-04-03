@@ -39,7 +39,7 @@ CMD_HELP = {
     'clear': "Usage: clear | :cl\nFunction: Clear all songs in the temporary save directory.\nExample: clear",
     'library': "Usage: library | :lib\nFunction: List all songs in the local music library.\nExample: library",
     'lookup': "Usage: lookup <keyword> | :lu <keyword>\nFunction: Fuzzy search for songs in the local library.\nExample: lookup Love",
-    'timelimit': "Usage: timelimit <minutes> | :tl <minutes>\nFunction: Set a timer to stop playback automatically.\nExample: timelimit 30",
+    'timelimit': "Usage: timelimit <min> | <HH:MM[:SS]> | :tl <min> | <HH:MM[:SS]>\nFunction: Stop playback after X minutes or at a specific time.\nExample: timelimit 30 | timelimit 14:15 | timelimit 23:59:59",
     'history': "Usage: history | :his\nFunction: Show play counts and total time statistics.\nExample: history",
     'current': "Usage: ? | :?\nFunction: Show information about the song currently playing.\nExample: ?",
     'set': "Usage: set [list | <key> <value>]\nFunction: View or modify settings. Settings are saved to settings.json.\nExample: set list | set volume 0.5",
@@ -464,19 +464,55 @@ def handle_lookup(res, library_directory, threshold):
         print('Invalid command!')
 
 def handle_timelimit(res, timelimit, lock):
+    """Handle setting a play time limit by minutes or specific HH:MM[:SS]."""
     if _check_help(res, 'timelimit'): return
     try:
-        timelimit_tmp = int(res.split()[1])
-        if timelimit_tmp > 0:
-            with lock:
-                timelimit[0] = timelimit_tmp*60 + int(time.time())
-            print(f'Set time limit to {timelimit_tmp} minute(s).')
-            newtime = datetime.datetime.now() + datetime.timedelta(minutes=timelimit_tmp)
-            print(f"Keep playing until {newtime.strftime('%H')}:{newtime.strftime('%M')}:{newtime.strftime('%S')}.")
+        parts = res.split()
+        if len(parts) < 2:
+            print("Please provide a duration (min) or time (HH:MM[:SS]).")
+            return
+        
+        target_str = parts[1]
+        target_epoch = 0
+        
+        # Enhanced regex to validate HH:MM or HH:MM:SS
+        # Hours: 0-23, Minutes: 0-59, Seconds: 0-59
+        time_pattern = r'^([0-1]?[0-9]|2[0-3]):([0-5][0-9])(?::([0-5][0-9]))?$'
+        match = re.match(time_pattern, target_str)
+        
+        if match:
+            # Case: Clock time
+            h, m, s = match.groups()
+            s = int(s) if s else 0 # Default to 0 seconds if not provided
+            h, m = int(h), int(m)
+            
+            now = datetime.datetime.now()
+            target_time = now.replace(hour=h, minute=m, second=s, microsecond=0)
+            
+            # If target time has already passed today, set for tomorrow
+            if target_time <= now:
+                target_time += datetime.timedelta(days=1)
+            
+            target_epoch = int(target_time.timestamp())
+            display_msg = f"at {target_time.strftime('%H:%M:%S')} ({target_time.strftime('%Y-%m-%d')})"
         else:
-            print('Invalid time limit!')
-    except:
-        print('Invalid time limit!')
+            # Case: Relative Minutes
+            try:
+                minutes = int(target_str)
+                if minutes <= 0: raise ValueError
+                target_epoch = int(time.time()) + minutes * 60
+                end_time = datetime.datetime.fromtimestamp(target_epoch)
+                display_msg = f"in {minutes} minute(s) (at {end_time.strftime('%H:%M:%S')})"
+            except ValueError:
+                print('Invalid time format! Use minutes (e.g. 45) or HH:MM[:SS] (e.g. 14:30 or 14:30:05).')
+                return
+
+        with lock:
+            timelimit[0] = target_epoch
+        print(f"Time limit set! Playback will stop {display_msg}.")
+            
+    except Exception as e:
+        print(f'Error setting time limit: {e}')
 
 def handle_history(res, history_manager):
     if _check_help(res, 'history'): return
@@ -541,7 +577,6 @@ def handle_common(res, config, session, base_commands):
     
     parts = res.split()
     
-    # 1. List
     if len(parts) == 1 or '-l' in parts:
         if not common_list:
             print("Common command list is empty.")
@@ -551,9 +586,7 @@ def handle_common(res, config, session, base_commands):
                 print(f"{i}.\t{cmd}")
         return
 
-    # 2. Add
     if '-a' in parts:
-        # Get the string after -a
         idx = parts.index('-a')
         new_cmd = " ".join(parts[idx+1:]).strip().strip('"').strip("'")
         if new_cmd:
@@ -561,7 +594,6 @@ def handle_common(res, config, session, base_commands):
                 common_list.append(new_cmd)
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(common_list, f, indent=4, ensure_ascii=False)
-                # Update session history and completer
                 session.history.append_string(new_cmd)
                 all_cmds = list(set(base_commands + common_list))
                 session.completer = FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
@@ -570,7 +602,6 @@ def handle_common(res, config, session, base_commands):
                 print("Command already in list.")
         return
 
-    # 3. Delete
     if '-d' in parts:
         idx = parts.index('-d')
         try:
@@ -579,7 +610,6 @@ def handle_common(res, config, session, base_commands):
                 removed = common_list.pop(target_idx)
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(common_list, f, indent=4, ensure_ascii=False)
-                # Update completer (History cannot be easily removed from MemoryHistory)
                 all_cmds = list(set(base_commands + common_list))
                 session.completer = FuzzyCompleter(WordCompleter(all_cmds, ignore_case=True))
                 print(f"Removed: {removed}")
