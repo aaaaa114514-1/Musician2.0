@@ -82,6 +82,11 @@ musician_project/
   + `save` 把 `savelist` 中的歌曲保存到曲库目录
   + `save test1 test2` 把 `savelist` 中的歌曲保存到曲库目录，并把这些歌曲统一打上 `test1` `test2` 标签
 
+### 使用安装包安装
+
++ 使用 *Inno Setup* 安装包，自动处理了安装路径问题
++ 分为 `BGM` 和 `Musician` 两个路径，允许用户独立编辑安装位置
+
 ## 待修改
 
 + 重构 history 指令的展示面板
