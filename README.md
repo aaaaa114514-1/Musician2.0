@@ -40,7 +40,7 @@ Open Musician and use the `set` command to configure your NetEase cache path:
 *   `decode <#>` (`:d <#>`): Decrypt specific songs (e.g., `decode 1-3 5`).
 *   `clear163` (`:163_clear`): Clear NetEase cache folder.
 
-#### **Kugou Music**
+#### **Kugou Music** (Not supported yet)
 *   `search <name>` (`/s <name>`): Search songs on Kugou.
 *   `download <#>` (`/d <#>`): Download from search results.
 
@@ -68,6 +68,15 @@ Musician 2.0 uses a **Tag System** instead of folders.
 *   `tag -a <tag> <#>`: Add a tag to songs (e.g., `tag -a gym 1-5`).
 *   `tag -d <tag>`: Delete a tag from the system.
 *   `tag -d <tag> <#>`: Remove a tag from specific songs.
+
+### **Sync to Phone**
+
+Musician 2.0 has introduced the ability to sync your music library to mobile devices. Download the Android version from [aaaaa114514-1/musician_Android: An Android version of musician](https://github.com/aaaaa114514-1/musician_Android) and experience one-tap syncing!
+
+- `sync <#>`: Sync the track with the specified ID.
+- `sync <tag>`: Sync all tracks under the specified tag.
+
+After entering a sync command, the application will enter broadcast mode. Please enable the hotspot on your PC, and after the mobile device connects, you can tap **"Settings" -> "Start Sync"** in the Musician app to sync with one tap!
 
 ---
 

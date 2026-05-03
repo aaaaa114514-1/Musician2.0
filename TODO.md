@@ -3,7 +3,7 @@
 ## 一键完成编译
 
 ```bash
-pyinstaller --onefile --noconsole --icon=Icon.ico main.py --name musician
+pyinstaller --onefile --icon=Icon.ico main.py --name musician
 ```
 
 ## 已经完成的修改
@@ -58,7 +58,6 @@ musician_project/
 ### 增加 `timelimit` 播放到固定时间功能
 
 + 重构了 `timelimit` 处理代码
-
 + 增加支持 `timelimit 14:15` 或 `timelimit 23:59:59` 的功能，自动播放直到下一次到达指定的时刻
 
 ### 增加歌曲 Tag 功能，重构存储逻辑
@@ -67,18 +66,21 @@ musician_project/
 + 替代了原本的 Lis 目录逻辑，而是使用指定tag来播放音乐
 + 标签必须是由大小写敏感的字母、数字（可以没有）、下划线（可以没有）组成的，不能纯数字
 + `tag` 标签
+
   + `tag` 列出所有标签和标签下的曲目数量
   + `tag -l` 列出所有标签和标签下的曲目
   + `tag test` 列出标签 `test` 下的所有曲目
   + `tag -a test 1-4 6` 把当前目录下的第1-4、6首曲子打上标签 `test`
   + `tag -d test` 删除标签 `test` ，洗脱所有曲目的这个标签
   + `tag -d test 2-3 7` 把带 `test` 标签的低2-3、7首曲子洗脱 `test` 标签
-
 + `play` 新增内容
+
   + `play test` 播放 `test` 中的曲目（这里的 `test` 可以按照任意顺序传入参数）
 + `showlist` 新增内容
+
   + `showlist test` 列出标签 `test` 下的所有曲目
 + `save` 语法重构
+
   + `save` 把 `savelist` 中的歌曲保存到曲库目录
   + `save test1 test2` 把 `savelist` 中的歌曲保存到曲库目录，并把这些歌曲统一打上 `test1` `test2` 标签
 
@@ -86,6 +88,14 @@ musician_project/
 
 + 使用 *Inno Setup* 安装包，自动处理了安装路径问题
 + 分为 `BGM` 和 `Musician` 两个路径，允许用户独立编辑安装位置
++ 自动配置 **settings.json** 中的部分路径
+
+### 与手机端同步
+
++ `sync <编号>`：同步指定编号的曲目
++ `sync <标签名>`：同步该标签下的所有曲目
+
+键入同步指令后，应用会进入广播模式，请打开pc端设备的热点，移动端连接后，可在 Musician 应用中“设置-开始同步”以一键同步
 
 ## 待修改
 
@@ -93,18 +103,3 @@ musician_project/
 + 修Kugou音乐的爬虫
 + 使用安装包安装
 + 添加心动模式，采用评价系统打分推荐
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

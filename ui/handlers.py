@@ -45,6 +45,7 @@ CMD_HELP = {
     'set': "Usage: set [list | <key> <value>]\nFunction: View or modify settings.\nExample: set volume 0.5",
     'common': "Usage: common [-l | -a <cmd> | -d <indices>]\nFunction: Manage common commands. Delete supports ranges.\nExample: common -l | common -a \"play 1-5\" | common -d 1-3 5",
     'tag': "Usage: tag [tag_name | -l | -a <tag> <indices> | -d <tag> [indices]]\nFunction: Manage song tags. Use alone to list tags and counts.\nExample: tag | tag mytag | tag -a fav 1-3 | tag -d oldtag",
+    'sync': "Usage: sync <tag> | <indices> | -h\nFunction: Synchronize songs to mobile devices via local network.\nExample: sync mytag | sync 1 3-5",
 }
 
 def _validate_flags(res, allowed):
@@ -681,3 +682,57 @@ def handle_tag(res, playlist, config, tags_dict):
             for i, s in enumerate(tag_songs, 1): print(f"{i}.\t{s}")
     else: print(f"Invalid tag name or command: {tag_name}")
     return tags_dict
+
+
+from services.sync import start_server, clear_temp_dir
+
+def handle_sync(res, current_view_list, playlist, tags_dict, config):
+    if _check_help(res, 'sync'): return
+    
+    parts = res.split()
+    if len(parts) < 2:
+        print("Usage: sync <tag> | <indices>")
+        return
+
+    temp_dir = config['temp_dir']
+    library_dir = config['library_dir']
+    target_songs = []
+
+    arg = parts[1]
+    all_known_tags = set()
+    for tlist in tags_dict.values(): all_known_tags.update(tlist)
+
+    if _is_valid_tag(arg) and arg in all_known_tags:
+        target_songs = [s for s in playlist if arg in tags_dict.get(s, [])]
+        print(f"[Sync] Tag '{arg}' detected. Found {len(target_songs)} song(s).")
+    else:
+        indices = _parse_indices(parts[1:], len(current_view_list))
+        if indices:
+            target_songs = [current_view_list[i-1] for i in indices]
+            print(f"[Sync] {len(target_songs)} song(s) selected by indices.")
+    
+    if not target_songs:
+        print("[Sync] Error: No matching songs or invalid input.")
+        return
+
+    print("[Sync] Preparing temporary files...")
+    clear_temp_dir(temp_dir)
+    
+    success_count = 0
+    for song_name in target_songs:
+        src = os.path.join(library_dir, song_name)
+        dst = os.path.join(temp_dir, song_name)
+        if os.path.exists(src):
+            shutil.copy2(src, dst)
+            success_count += 1
+    
+    print(f"[Sync] {success_count} song(s) ready for transfer.")
+
+    try:
+        start_server(temp_dir)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\n[Sync] Shutting down and cleaning up...")
+        clear_temp_dir(temp_dir)
+        print("[Sync] Done.")

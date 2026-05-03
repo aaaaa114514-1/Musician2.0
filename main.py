@@ -53,7 +53,7 @@ def main():
                 'stop', ':st', 'pause', ':pa', 'next', ':n', 'restart', 'replay', ':r', 
                 'volume', ':vol', 'savelist', ':sl', 'save', ':s', 'add', ':a', 
                 'clear', ':cl', 'library', ':lib', 'lookup', ':lu', 'timelimit', ':tl', 
-                'history', ':his', 'set', 'common', 'tag', '?', ':?', 'last', 'previous', ':prev']
+                'history', ':his', 'set', 'common', 'tag', '?', ':?', 'last', 'previous', ':prev', 'sync']
     
     common_cmds = []
     cc_path = config.get('common_commands_path')
@@ -146,6 +146,8 @@ def main():
                 tags = handlers.handle_tag(res, current_view_list, config, tags)
             elif cmd in ['?', ':?']:
                 handlers.handle_current_song(res, bgm)
+            elif cmd == 'sync':
+                handlers.handle_sync(res, current_view_list, playlist, tags, config)
             else:
                 print(f"'{cmd}': Invalid command!")
             

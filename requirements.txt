@@ -1,0 +1,15 @@
+# Core
+pygame>=2.5.0
+pydub>=0.25.1
+requests>=2.31.0
+
+# CLI & UX
+prompt_toolkit>=3.0.43
+rapidfuzz>=3.6.0
+
+# Web / Sync
+Flask>=2.3.3
+Werkzeug>=2.3.7
+
+# Utils
+beautifulsoup4>=4.12.2
